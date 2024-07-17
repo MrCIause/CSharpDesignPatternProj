@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/CSharpDesignPatternProj.iml" filepath="$PROJECT_DIR$/CSharpDesignPatternProj.iml" />
+      <module fileurl="file://$PROJECT_DIR$/CSharpDesignPatterns.iml" filepath="$PROJECT_DIR$/CSharpDesignPatterns.iml" />
     </modules>
   </component>
 </project>

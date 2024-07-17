@@ -1,137 +1,150 @@
 package MainClasses;
 
-import java.util.Date;
 import java.util.Stack;
-import Interfaces.*;
+import java.util.Date;
+import java.util.List;
+import java.util.ArrayList;
+import Interfaces.IBook;
+import Interfaces.ILoan;
+import Interfaces.IMember;
+import Interfaces.ILibrary;
+import Interfaces.ISubject;
+import Interfaces.IObserver;
 
-public class Library implements LibraryInterface {
-    private Node<Book> books;
-    private Node<Member> members;
-    private Node<Loan> loans;
-    private Node<Librarian> librarians;
+/**
+ * The Library class represents a singleton instance of a library that manages books and members.
+ */
+public class Library implements ILibrary, ISubject {
+    private static Library instance;
+    private Stack<IBook> books;
+    private Stack<IMember> members;
+    private List<IObserver> observers = new ArrayList<>();
 
-    public Library() {
-        this.books = null;
-        this.members = null;
-        this.loans = null;
-        this.librarians = null;
+    private Library() {
+        books = new Stack<>();
+        members = new Stack<>();
     }
 
-    // Methods to add, remove, and retrieve books
-    @Override
-    public void addBook(Book book) {
-        books = addNode(books, book);
-    }
-
-    @Override
-    public Book getBook(String bookId) {
-        return findNode(books, bookId);
-    }
-
-    @Override
-    public void removeBook(String bookId) {
-        books = removeNode(books, bookId);
-    }
-
-    // Methods to add, remove, and retrieve members
-    @Override
-    public void addMember(Member member) {
-        members = addNode(members, member);
-    }
-
-    @Override
-    public Member getMember(String memberId) {
-        return findNode(members, memberId);
+    /**
+     * Gets the singleton instance of the Library.
+     * @return The instance of the Library.
+     */
+    public static Library getInstance() {
+        if (instance == null) {
+            instance = new Library();
+        }
+        return instance;
     }
 
     @Override
-    public void removeMember(String memberId) {
-        members = removeNode(members, memberId);
+    public void addBook(IBook book) {
+        books.push(book);
+        notifyObservers(book);
     }
 
-    // Methods to manage loans
     @Override
-    public void loanBook(String bookId, String memberId) {
-        Book book = getBook(bookId);
-        Member member = getMember(memberId);
-        if (book != null && member != null) {
-            Loan loan = new Loan(book, member);
-            loans = addNode(loans, loan);
-            book.setLoanStatus(true);
+    public void removeBook(IBook book) {
+        books.remove(book);
+        notifyObservers(book);
+    }
+
+    @Override
+    public void addMember(IMember member) {
+        members.push(member);
+    }
+
+    @Override
+    public void removeMember(IMember member) {
+        members.remove(member);
+    }
+
+    @Override
+    public void loanBook(IBook book, IMember member) {
+        if (book.isAvailable()) {
+            book.setAvailable(false);
+            ILoan loan = new Loan.Builder()
+                    .withBook(book)
+                    .withLoanDate(new Date())
+                    .build();
+            member.addLoan(loan);
+            notifyObservers(book);
         }
     }
 
     @Override
-    public void returnBook(String bookId) {
-        Loan loanToRemove = findLoan(loans, bookId);
-        if (loanToRemove != null) {
-            loans = removeNode(loans, loanToRemove.getBook().getId());
-            loanToRemove.getBook().setLoanStatus(false);
-        }
-    }
-
-    // Methods to add and retrieve librarians
-    @Override
-    public void addLibrarian(Librarian librarian) {
-        librarians = addNode(librarians, librarian);
-    }
-
-    @Override
-    public Librarian getLibrarian(String librarianId) {
-        return findNode(librarians, librarianId);
-    }
-
-    // Generic methods for managing linked lists
-    private <T> Node<T> addNode(Node<T> head, T data) {
-        Node<T> newNode = new Node<>(data);
-        if (head == null) {
-            return newNode;
-        }
-        Node<T> current = head;
-        while (current.getNext() != null) {
-            current = current.getNext();
-        }
-        current.setNext(newNode);
-        return head;
-    }
-
-    private <T> T findNode(Node<T> head, String id) {
-        Node<T> current = head;
-        while (current != null) {
-            if (((Identifiable) current.getData()).getId().equals(id)) {
-                return current.getData();
+    public void returnBook(IBook book, IMember member) {
+        for (ILoan loan : member.getLoans()) {
+            if (loan.getBook().equals(book) && loan.getReturnDate() == null) {
+                loan.setReturnDate(new Date());
+                book.setAvailable(true);
+                notifyObservers(book);
             }
-            current = current.getNext();
         }
-        return null;
     }
 
-    private <T> Node<T> removeNode(Node<T> head, String id) {
-        if (head == null) {
+    @Override
+    public void changeBookStatus(IBook book, boolean isAvailable) {
+        book.setAvailable(isAvailable);
+        notifyObservers(book);
+    }
+
+    @Override
+    public String getLibrarySummary() {
+        int availableBooks = 0;
+        int borrowedBooks = 0;
+        for (IBook book : books) {
+            if (book.isAvailable()) {
+                availableBooks++;
+            } else {
+                borrowedBooks++;
+            }
+        }
+        return "Library Summary: " +
+                "\nAvailable Books: " + availableBooks +
+                "\nBorrowed Books: " + borrowedBooks +
+                "\nTotal Members: " + members.size();
+    }
+
+    @Override
+    public IBook cloneBook(IBook book) {
+        try {
+            return book.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
             return null;
         }
-        if (((Identifiable) head.getData()).getId().equals(id)) {
-            return head.getNext();
-        }
-        Node<T> current = head;
-        while (current.getNext() != null && !((Identifiable) current.getNext().getData()).getId().equals(id)) {
-            current = current.getNext();
-        }
-        if (current.getNext() != null) {
-            current.setNext(current.getNext().getNext());
-        }
-        return head;
     }
 
-    private Loan findLoan(Node<Loan> head, String bookId) {
-        Node<Loan> current = head;
-        while (current != null) {
-            if (current.getData().getBook().getId().equals(bookId)) {
-                return current.getData();
-            }
-            current = current.getNext();
+    @Override
+    public void addObserver(IObserver observer) {
+        observers.add(observer);
+    }
+
+    @Override
+    public void removeObserver(IObserver observer) {
+        observers.remove(observer);
+    }
+
+    @Override
+    public void notifyObservers(IBook book) {
+        for (IObserver observer : observers) {
+            observer.update(book);
         }
-        return null;
+    }
+
+    /**
+     * Gets the list of books in the library.
+     * @return The list of books.
+     */
+    public List<IBook> getBooks() {
+        return new ArrayList<>(books);
+    }
+
+    /**
+     * Gets the list of members in the library.
+     * @return The list of members.
+     */
+    public List<IMember> getMembers() {
+        return new ArrayList<>(members);
     }
 }
-

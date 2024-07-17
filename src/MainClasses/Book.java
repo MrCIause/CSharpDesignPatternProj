@@ -1,25 +1,18 @@
 package MainClasses;
 
-import Interfaces.BookInterface;
-import Interfaces.Identifiable;
+import Interfaces.IBook;
 
-public class Book implements BookInterface, Identifiable {
-    private String id;
+public class Book implements IBook, Cloneable {
     private String title;
     private String author;
-    private boolean isLoaned;
+    private int publicationYear;
+    private boolean isAvailable;
 
-    // Constructor, getters, and setters
-    public Book(String id, String title, String author) {
-        this.id = id;
+    public Book(String title, String author, int publicationYear, boolean isAvailable) {
         this.title = title;
         this.author = author;
-        this.isLoaned = false;
-    }
-
-    @Override
-    public String getId() {
-        return id;
+        this.publicationYear = publicationYear;
+        this.isAvailable = isAvailable;
     }
 
     @Override
@@ -33,12 +26,32 @@ public class Book implements BookInterface, Identifiable {
     }
 
     @Override
-    public boolean isLoaned() {
-        return isLoaned;
+    public int getPublicationYear() {
+        return publicationYear;
     }
 
-    public void setLoanStatus(boolean isLoaned) {
-        this.isLoaned = isLoaned;
+    @Override
+    public boolean isAvailable() {
+        return isAvailable;
+    }
+
+    @Override
+    public void setAvailable(boolean isAvailable) {
+        this.isAvailable = isAvailable;
+    }
+
+    @Override
+    public IBook clone() throws CloneNotSupportedException {
+        return (IBook) super.clone();  // Change to cast to IBook
+    }
+
+    @Override
+    public String toString() {
+        return "Book{" +
+                "title='" + title + '\'' +
+                ", author='" + author + '\'' +
+                ", publicationYear=" + publicationYear +
+                ", isAvailable=" + isAvailable +
+                '}';
     }
 }
-
