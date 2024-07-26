@@ -2,7 +2,10 @@ package MainClasses;
 
 import Interfaces.IBook;
 
-public class Book implements IBook, Cloneable {
+/**
+ * Class representing a book.
+ */
+public class Book implements IBook {
     private String title;
     private String author;
     private int publicationYear;
@@ -36,13 +39,8 @@ public class Book implements IBook, Cloneable {
     }
 
     @Override
-    public void setAvailable(boolean isAvailable) {
-        this.isAvailable = isAvailable;
-    }
-
-    @Override
-    public IBook clone() throws CloneNotSupportedException {
-        return (IBook) super.clone();  // Change to cast to IBook
+    public void setAvailable(boolean available) {
+        this.isAvailable = available;
     }
 
     @Override

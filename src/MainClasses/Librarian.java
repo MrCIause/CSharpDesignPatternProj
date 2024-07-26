@@ -1,50 +1,72 @@
 package MainClasses;
 
-import Interfaces.IBook;
 import Interfaces.ILibrarian;
 import Interfaces.IMember;
-import Interfaces.ILibrary;
+import Interfaces.IBook;
+import Interfaces.ILoan;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * The Librarian class provides a facade for managing books and members in the library.
+ * Class representing a librarian.
  */
 public class Librarian implements ILibrarian {
-    private ILibrary library;
+    private List<IBook> books;
+    private List<IMember> members;
 
-    /**
-     * Constructs a new Librarian instance.
-     */
     public Librarian() {
-        this.library = Library.getInstance();
+        books = new ArrayList<>();
+        members = new ArrayList<>();
     }
 
     @Override
     public void addBook(IBook book) {
-        library.addBook(book);
+        books.add(book);
     }
 
     @Override
     public void removeBook(IBook book) {
-        library.removeBook(book);
+        books.remove(book);
     }
 
     @Override
     public void addMember(IMember member) {
-        library.addMember(member);
+        members.add(member);
     }
 
     @Override
     public void removeMember(IMember member) {
-        library.removeMember(member);
+        members.remove(member);
     }
 
     @Override
     public void loanBook(IBook book, IMember member) {
-        library.loanBook(book, member);
+        if (books.contains(book) && members.contains(member) && book.isAvailable()) {
+            book.setAvailable(false);
+            ILoan loan = new Loan.Builder()
+                    .withBook(book)
+                    .withLoanDate(new java.util.Date())
+                    .build();
+            member.addLoan(loan);
+        }
     }
 
     @Override
     public void returnBook(IBook book, IMember member) {
-        library.returnBook(book, member);
+        if (books.contains(book) && members.contains(member) && !book.isAvailable()) {
+            book.setAvailable(true);
+            member.getLoans().removeIf(loan -> loan.getBook().equals(book));
+        }
+    }
+
+    @Override
+    public IMember getMemberById(int id) {
+        for (IMember member : members) {
+            if (member.getId() == id) {
+                return member;
+            }
+        }
+        return null; // Member not found
     }
 }

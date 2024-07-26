@@ -1,19 +1,23 @@
 package MainClasses;
 
-import Interfaces.ILoan;
 import Interfaces.IMember;
+import Interfaces.ILoan;
 
-import java.util.Stack;
+import java.util.ArrayList;
+import java.util.List;
 
+/**
+ * Class representing a library member.
+ */
 public class Member implements IMember {
     private String name;
-    private String id;
-    private Stack<ILoan> loans;  // Change Loan to ILoan
+    private int id;
+    private List<ILoan> loans;
 
-    public Member(String name, String id) {
+    public Member(String name, int id) {
         this.name = name;
         this.id = id;
-        this.loans = new Stack<>();
+        this.loans = new ArrayList<>();
     }
 
     @Override
@@ -22,31 +26,25 @@ public class Member implements IMember {
     }
 
     @Override
-    public String getId() {
+    public int getId() {
         return id;
     }
 
     @Override
-    public Stack<ILoan> getLoans() {  // Change Loan to ILoan
+    public List<ILoan> getLoans() {
         return loans;
     }
 
     @Override
-    public void addLoan(ILoan loan) {  // Change Loan to ILoan
-        loans.push(loan);
-    }
-
-    @Override
-    public void removeLoan(ILoan loan) {  // Change Loan to ILoan
-        loans.remove(loan);
+    public void addLoan(ILoan loan) {
+        loans.add(loan);
     }
 
     @Override
     public String toString() {
         return "Member{" +
                 "name='" + name + '\'' +
-                ", id='" + id + '\'' +
-                ", loans=" + loans +
+                ", id=" + id +
                 '}';
     }
 }

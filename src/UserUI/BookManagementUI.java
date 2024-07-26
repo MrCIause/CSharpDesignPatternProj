@@ -85,6 +85,7 @@ public class BookManagementUI {
                 boolean isAvailable = isAvailableCheckBox.isSelected();
 
                 IBook book = bookFactory.createBook(title, author, year, isAvailable);
+                Library.getInstance().addBook(book);  // Add book to library
                 librarian.addBook(book);
                 updateBookTable();
 
@@ -100,6 +101,7 @@ public class BookManagementUI {
                 for (IBook book : books) {
                     if (book.getTitle().equals(title)) {
                         librarian.removeBook(book);
+                        Library.getInstance().removeBook(book);  // Remove book from library
                         updateBookTable();
                         JOptionPane.showMessageDialog(frame, "Book removed successfully!");
                         return;
@@ -113,7 +115,8 @@ public class BookManagementUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String title = bookTitleField.getText();
-                String memberId = JOptionPane.showInputDialog(frame, "Enter Member ID:");
+                String memberIdStr = JOptionPane.showInputDialog(frame, "Enter Member ID:");
+                int memberId = Integer.parseInt(memberIdStr);
 
                 List<IBook> books = Library.getInstance().getBooks();
                 IBook bookToLoan = null;
@@ -134,7 +137,7 @@ public class BookManagementUI {
                 IMember memberToLoan = null;
 
                 for (IMember member : members) {
-                    if (member.getId().equals(memberId)) {
+                    if (member.getId() == memberId) {
                         memberToLoan = member;
                         break;
                     }
@@ -147,6 +150,7 @@ public class BookManagementUI {
                             .build();
                     memberToLoan.addLoan(loan); // Assuming the addLoan method exists
                     librarian.loanBook(bookToLoan, memberToLoan);
+                    bookToLoan.setAvailable(false); // Set book as unavailable
                     updateBookTable();
                     JOptionPane.showMessageDialog(frame, "Book loaned successfully!");
                 } else {
@@ -159,7 +163,8 @@ public class BookManagementUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String title = bookTitleField.getText();
-                String memberId = JOptionPane.showInputDialog(frame, "Enter Member ID:");
+                String memberIdStr = JOptionPane.showInputDialog(frame, "Enter Member ID:");
+                int memberId = Integer.parseInt(memberIdStr);
 
                 List<IBook> books = Library.getInstance().getBooks();
                 IBook bookToReturn = null;
@@ -180,7 +185,7 @@ public class BookManagementUI {
                 IMember memberToReturn = null;
 
                 for (IMember member : members) {
-                    if (member.getId().equals(memberId)) {
+                    if (member.getId() == memberId) {
                         memberToReturn = member;
                         break;
                     }
@@ -188,6 +193,7 @@ public class BookManagementUI {
 
                 if (bookToReturn != null && memberToReturn != null) {
                     librarian.returnBook(bookToReturn, memberToReturn);
+                    bookToReturn.setAvailable(true); // Set book as available
                     updateBookTable();
                     JOptionPane.showMessageDialog(frame, "Book returned successfully!");
                 } else {

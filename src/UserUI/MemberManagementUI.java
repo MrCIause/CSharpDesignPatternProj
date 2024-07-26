@@ -1,11 +1,12 @@
 package UserUI;
+
 import Interfaces.*;
 import MainClasses.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.List;
+import java.util.Queue;
 
 /**
  * Class for the Member Management UI.
@@ -13,6 +14,7 @@ import java.util.List;
 public class MemberManagementUI {
     private ILibrarian librarian;
     private IMemberFactory memberFactory;
+    private JList<String> memberList;
 
     public MemberManagementUI() {
         this.librarian = new Librarian();
@@ -36,6 +38,7 @@ public class MemberManagementUI {
 
         controlPanel.add(new JLabel("Member ID:"));
         JTextField memberIdField = new JTextField();
+        memberIdField.setEditable(false); // ID will be auto-generated
         controlPanel.add(memberIdField);
 
         JButton addMemberButton = new JButton("Add Member");
@@ -50,17 +53,26 @@ public class MemberManagementUI {
         JButton backButton = new JButton("Back to Main Menu");
         controlPanel.add(backButton);
 
+        // Member list display
+        memberList = new JList<>();
+        JScrollPane listScrollPane = new JScrollPane(memberList);
+        container.add(listScrollPane, BorderLayout.EAST);
+
         // Add action listeners
         addMemberButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String name = memberNameField.getText();
-                String id = memberIdField.getText();
-
-                IMember member = memberFactory.createMember(name, id);
-                librarian.addMember(member);
-
-                JOptionPane.showMessageDialog(frame, "Member added successfully!");
+                IMember member = memberFactory.createMember(name);
+                if (member == null) {
+                    JOptionPane.showMessageDialog(frame, "Member already exists!");
+                } else {
+                    librarian.addMember(member);
+                    Library.getInstance().addMember(member); // Add member to library
+                    memberIdField.setText(String.valueOf(member.getId())); // Display generated ID
+                    JOptionPane.showMessageDialog(frame, "Member added successfully with ID: " + member.getId());
+                    updateMemberList();
+                }
             }
         });
 
@@ -68,15 +80,17 @@ public class MemberManagementUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String id = memberIdField.getText();
-                List<IMember> members = Library.getInstance().getMembers();
-                for (IMember member : members) {
-                    if (member.getId().equals(id)) {
-                        librarian.removeMember(member);
-                        JOptionPane.showMessageDialog(frame, "Member removed successfully!");
-                        return;
-                    }
+                int memberId = Integer.parseInt(id);
+                IMember member = librarian.getMemberById(memberId);
+                if (member != null) {
+                    librarian.removeMember(member);
+                    Library.getInstance().removeMember(member); // Remove member from library
+                    MemberFactory.removeMember(member); // Remove from factory queue as well
+                    JOptionPane.showMessageDialog(frame, "Member removed successfully!");
+                    updateMemberList();
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Member not found!");
                 }
-                JOptionPane.showMessageDialog(frame, "Member not found!");
             }
         });
 
@@ -98,10 +112,17 @@ public class MemberManagementUI {
             }
         });
 
-        // Add panels to container
         container.add(controlPanel, BorderLayout.NORTH);
-
-        // Display the window
         frame.setVisible(true);
+        updateMemberList();
+    }
+
+    private void updateMemberList() {
+        Queue<IMember> members = MemberFactory.getMemberQueue();
+        DefaultListModel<String> listModel = new DefaultListModel<>();
+        for (IMember member : members) {
+            listModel.addElement(member.toString());
+        }
+        memberList.setModel(listModel);
     }
 }

@@ -10,5 +10,5 @@ public interface ILibrarian {
     void removeMember(IMember member);
     void loanBook(IBook book, IMember member);
     void returnBook(IBook book, IMember member);
+    IMember getMemberById(int id);  // Added method
 }
-

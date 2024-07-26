@@ -1,7 +1,8 @@
 package MainClasses;
 
-import Interfaces.IBook;
 import Interfaces.ILoan;
+import Interfaces.IBook;
+
 import java.util.Date;
 
 /**
@@ -18,18 +19,22 @@ public class Loan implements ILoan {
         this.returnDate = builder.returnDate;
     }
 
+    @Override
     public IBook getBook() {
         return book;
     }
 
+    @Override
     public Date getLoanDate() {
         return loanDate;
     }
 
+    @Override
     public Date getReturnDate() {
         return returnDate;
     }
 
+    @Override
     public void setReturnDate(Date returnDate) {
         this.returnDate = returnDate;
     }

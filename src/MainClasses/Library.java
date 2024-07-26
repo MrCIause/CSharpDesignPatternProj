@@ -1,34 +1,24 @@
 package MainClasses;
 
-import java.util.Stack;
-import java.util.Date;
-import java.util.List;
-import java.util.ArrayList;
 import Interfaces.IBook;
-import Interfaces.ILoan;
 import Interfaces.IMember;
-import Interfaces.ILibrary;
-import Interfaces.ISubject;
-import Interfaces.IObserver;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * The Library class represents a singleton instance of a library that manages books and members.
+ * Singleton class representing the library.
  */
-public class Library implements ILibrary, ISubject {
+public class Library {
     private static Library instance;
-    private Stack<IBook> books;
-    private Stack<IMember> members;
-    private List<IObserver> observers = new ArrayList<>();
+    private List<IBook> books;
+    private List<IMember> members;
 
     private Library() {
-        books = new Stack<>();
-        members = new Stack<>();
+        books = new ArrayList<>();
+        members = new ArrayList<>();
     }
 
-    /**
-     * Gets the singleton instance of the Library.
-     * @return The instance of the Library.
-     */
     public static Library getInstance() {
         if (instance == null) {
             instance = new Library();
@@ -36,115 +26,44 @@ public class Library implements ILibrary, ISubject {
         return instance;
     }
 
-    @Override
-    public void addBook(IBook book) {
-        books.push(book);
-        notifyObservers(book);
+    public List<IBook> getBooks() {
+        return books;
     }
 
-    @Override
+    public void addBook(IBook book) {
+        books.add(book);
+    }
+
     public void removeBook(IBook book) {
         books.remove(book);
-        notifyObservers(book);
     }
 
-    @Override
+    public List<IMember> getMembers() {
+        return members;
+    }
+
     public void addMember(IMember member) {
-        members.push(member);
+        members.add(member);
     }
 
-    @Override
     public void removeMember(IMember member) {
         members.remove(member);
     }
 
-    @Override
-    public void loanBook(IBook book, IMember member) {
-        if (book.isAvailable()) {
-            book.setAvailable(false);
-            ILoan loan = new Loan.Builder()
-                    .withBook(book)
-                    .withLoanDate(new Date())
-                    .build();
-            member.addLoan(loan);
-            notifyObservers(book);
-        }
-    }
-
-    @Override
-    public void returnBook(IBook book, IMember member) {
-        for (ILoan loan : member.getLoans()) {
-            if (loan.getBook().equals(book) && loan.getReturnDate() == null) {
-                loan.setReturnDate(new Date());
-                book.setAvailable(true);
-                notifyObservers(book);
-            }
-        }
-    }
-
-    @Override
-    public void changeBookStatus(IBook book, boolean isAvailable) {
-        book.setAvailable(isAvailable);
-        notifyObservers(book);
-    }
-
-    @Override
     public String getLibrarySummary() {
-        int availableBooks = 0;
-        int borrowedBooks = 0;
+        StringBuilder summary = new StringBuilder();
+        summary.append("Library Summary:\n");
+
+        summary.append("Books:\n");
         for (IBook book : books) {
-            if (book.isAvailable()) {
-                availableBooks++;
-            } else {
-                borrowedBooks++;
-            }
+            summary.append(book.toString()).append("\n");
         }
-        return "Library Summary: " +
-                "\nAvailable Books: " + availableBooks +
-                "\nBorrowed Books: " + borrowedBooks +
-                "\nTotal Members: " + members.size();
-    }
 
-    @Override
-    public IBook cloneBook(IBook book) {
-        try {
-            return book.clone();
-        } catch (CloneNotSupportedException e) {
-            e.printStackTrace();
-            return null;
+        summary.append("Members:\n");
+        for (IMember member : members) {
+            summary.append(member.toString()).append("\n");
         }
-    }
 
-    @Override
-    public void addObserver(IObserver observer) {
-        observers.add(observer);
-    }
-
-    @Override
-    public void removeObserver(IObserver observer) {
-        observers.remove(observer);
-    }
-
-    @Override
-    public void notifyObservers(IBook book) {
-        for (IObserver observer : observers) {
-            observer.update(book);
-        }
-    }
-
-    /**
-     * Gets the list of books in the library.
-     * @return The list of books.
-     */
-    public List<IBook> getBooks() {
-        return new ArrayList<>(books);
-    }
-
-    /**
-     * Gets the list of members in the library.
-     * @return The list of members.
-     */
-    public List<IMember> getMembers() {
-        return new ArrayList<>(members);
+        return summary.toString();
     }
 }
