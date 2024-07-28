@@ -79,17 +79,26 @@ public class MemberManagementUI {
         removeMemberButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String id = memberIdField.getText();
-                int memberId = Integer.parseInt(id);
-                IMember member = librarian.getMemberById(memberId);
-                if (member != null) {
-                    librarian.removeMember(member);
-                    Library.getInstance().removeMember(member); // Remove member from library
-                    MemberFactory.removeMember(member); // Remove from factory queue as well
-                    JOptionPane.showMessageDialog(frame, "Member removed successfully!");
-                    updateMemberList();
+                String name = JOptionPane.showInputDialog(frame, "Enter Member Name to Delete:");
+                String idStr = JOptionPane.showInputDialog(frame, "Enter Member ID to Delete:");
+                if (name != null && idStr != null && !name.isEmpty() && !idStr.isEmpty()) {
+                    try {
+                        int memberId = Integer.parseInt(idStr);
+                        IMember member = librarian.getMemberById(memberId);
+                        if (member != null && member.getName().equals(name)) {
+                            librarian.removeMember(member);
+                            Library.getInstance().removeMember(member); // Remove member from library
+                            MemberFactory.removeMember(member); // Remove from factory queue as well
+                            JOptionPane.showMessageDialog(frame, "Member removed successfully!");
+                            updateMemberList();
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Member not found or ID does not match the name!");
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(frame, "Invalid ID format!");
+                    }
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Member not found!");
+                    JOptionPane.showMessageDialog(frame, "Please provide both name and ID!");
                 }
             }
         });

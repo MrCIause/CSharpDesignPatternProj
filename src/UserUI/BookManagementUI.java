@@ -33,7 +33,7 @@ public class BookManagementUI {
         container.setLayout(new BorderLayout());
 
         // Create control panel
-        JPanel controlPanel = new JPanel(new GridLayout(7, 2));
+        JPanel controlPanel = new JPanel(new GridLayout(8, 2));
 
         controlPanel.add(new JLabel("Book Title:"));
         JTextField bookTitleField = new JTextField();
@@ -47,9 +47,10 @@ public class BookManagementUI {
         JTextField publicationYearField = new JTextField();
         controlPanel.add(publicationYearField);
 
-        controlPanel.add(new JLabel("Available:"));
-        JCheckBox isAvailableCheckBox = new JCheckBox();
-        controlPanel.add(isAvailableCheckBox);
+        controlPanel.add(new JLabel("Availability:"));
+        String[] availabilityOptions = {"Available", "Unavailable", "Loaned"};
+        JComboBox<String> availabilityComboBox = new JComboBox<>(availabilityOptions);
+        controlPanel.add(availabilityComboBox);
 
         JButton addBookButton = new JButton("Add Book");
         controlPanel.add(addBookButton);
@@ -63,6 +64,9 @@ public class BookManagementUI {
         JButton returnBookButton = new JButton("Return Book");
         controlPanel.add(returnBookButton);
 
+        JButton makeAvailableButton = new JButton("Make Available");
+        controlPanel.add(makeAvailableButton);
+
         JButton showSummaryButton = new JButton("Show Library Summary");
         controlPanel.add(showSummaryButton);
 
@@ -70,7 +74,7 @@ public class BookManagementUI {
         controlPanel.add(backButton);
 
         // Table to display books
-        String[] columnNames = {"Title", "Author", "Year", "Available"};
+        String[] columnNames = {"ID", "Title", "Author", "Year", "Availability"};
         tableModel = new DefaultTableModel(columnNames, 0);
         bookTable = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(bookTable);
@@ -82,9 +86,14 @@ public class BookManagementUI {
                 String title = bookTitleField.getText();
                 String author = bookAuthorField.getText();
                 int year = Integer.parseInt(publicationYearField.getText());
-                boolean isAvailable = isAvailableCheckBox.isSelected();
+                String availability = (String) availabilityComboBox.getSelectedItem();
+                boolean isAvailable = availability.equals("Available");
 
                 IBook book = bookFactory.createBook(title, author, year, isAvailable);
+                if (availability.equals("Unavailable")) {
+                    // Mark the book as unavailable if selected
+                    book.setAvailable(false);
+                }
                 Library.getInstance().addBook(book);  // Add book to library
                 librarian.addBook(book);
                 updateBookTable();
@@ -96,65 +105,101 @@ public class BookManagementUI {
         removeBookButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String title = bookTitleField.getText();
-                List<IBook> books = Library.getInstance().getBooks();
-                for (IBook book : books) {
-                    if (book.getTitle().equals(title)) {
-                        librarian.removeBook(book);
-                        Library.getInstance().removeBook(book);  // Remove book from library
-                        updateBookTable();
-                        JOptionPane.showMessageDialog(frame, "Book removed successfully!");
-                        return;
+                String title = JOptionPane.showInputDialog(frame, "Enter Book Title to Delete:");
+                String author = JOptionPane.showInputDialog(frame, "Enter Book Author to Delete:");
+                String idStr = JOptionPane.showInputDialog(frame, "Enter Book ID to Delete:");
+                if (title != null && author != null && idStr != null && !title.isEmpty() && !author.isEmpty() && !idStr.isEmpty()) {
+                    try {
+                        int bookId = Integer.parseInt(idStr);
+                        if (bookId == 0) {
+                            JOptionPane.showMessageDialog(frame, "Book ID 0 is reserved for returning unavailable books.");
+                            return;
+                        }
+                        List<IBook> books = Library.getInstance().getBooks();
+                        IBook bookToRemove = null;
+                        for (IBook book : books) {
+                            if (book.getId() == bookId && book.getTitle().equals(title) && book.getAuthor().equals(author)) {
+                                if (!book.isAvailable()) {
+                                    JOptionPane.showMessageDialog(frame, "Cannot remove a book that is unavailable or loaned.");
+                                    return;
+                                }
+                                bookToRemove = book;
+                                break;
+                            }
+                        }
+
+                        if (bookToRemove != null) {
+                            librarian.removeBook(bookToRemove);
+                            Library.getInstance().removeBook(bookToRemove);  // Remove book from library
+                            updateBookTable();
+                            JOptionPane.showMessageDialog(frame, "Book removed successfully!");
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Book not found!");
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(frame, "Invalid ID format!");
                     }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Please provide title, author, and ID!");
                 }
-                JOptionPane.showMessageDialog(frame, "Book not found!");
             }
         });
 
         loanBookButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String title = bookTitleField.getText();
+                String title = JOptionPane.showInputDialog(frame, "Enter Book Title to Loan:");
+                String author = JOptionPane.showInputDialog(frame, "Enter Book Author to Loan:");
+                String idStr = JOptionPane.showInputDialog(frame, "Enter Book ID to Loan:");
                 String memberIdStr = JOptionPane.showInputDialog(frame, "Enter Member ID:");
-                int memberId = Integer.parseInt(memberIdStr);
+                if (title != null && author != null && idStr != null && memberIdStr != null && !title.isEmpty() && !author.isEmpty() && !idStr.isEmpty() && !memberIdStr.isEmpty()) {
+                    try {
+                        int bookId = Integer.parseInt(idStr);
+                        int memberId = Integer.parseInt(memberIdStr);
 
-                List<IBook> books = Library.getInstance().getBooks();
-                IBook bookToLoan = null;
+                        List<IBook> books = Library.getInstance().getBooks();
+                        IBook bookToLoan = null;
 
-                for (IBook book : books) {
-                    if (book.getTitle().equals(title) && book.isAvailable()) {
-                        bookToLoan = book;
-                        break;
+                        for (IBook book : books) {
+                            if (book.getId() == bookId && book.getTitle().equals(title) && book.getAuthor().equals(author) && book.isAvailable()) {
+                                bookToLoan = book;
+                                break;
+                            }
+                        }
+
+                        if (bookToLoan == null) {
+                            JOptionPane.showMessageDialog(frame, "Book is unavailable or not found!");
+                            return;
+                        }
+
+                        List<IMember> members = Library.getInstance().getMembers();
+                        IMember memberToLoan = null;
+
+                        for (IMember member : members) {
+                            if (member.getId() == memberId) {
+                                memberToLoan = member;
+                                break;
+                            }
+                        }
+
+                        if (memberToLoan != null) {
+                            ILoan loan = new Loan.Builder()
+                                    .withBook(bookToLoan)
+                                    .withLoanDate(new Date())
+                                    .build();
+                            memberToLoan.addLoan(loan); // Assuming the addLoan method exists
+                            librarian.loanBook(bookToLoan, memberToLoan);
+                            bookToLoan.setAvailable(false); // Set book as unavailable
+                            updateBookTable();
+                            JOptionPane.showMessageDialog(frame, "Book loaned successfully!");
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Member not found!");
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(frame, "Invalid ID format!");
                     }
-                }
-
-                if (bookToLoan == null) {
-                    JOptionPane.showMessageDialog(frame, "Book is unavailable!");
-                    return;
-                }
-
-                List<IMember> members = Library.getInstance().getMembers();
-                IMember memberToLoan = null;
-
-                for (IMember member : members) {
-                    if (member.getId() == memberId) {
-                        memberToLoan = member;
-                        break;
-                    }
-                }
-
-                if (bookToLoan != null && memberToLoan != null) {
-                    ILoan loan = new Loan.Builder()
-                            .withBook(bookToLoan)
-                            .withLoanDate(new Date())
-                            .build();
-                    memberToLoan.addLoan(loan); // Assuming the addLoan method exists
-                    librarian.loanBook(bookToLoan, memberToLoan);
-                    bookToLoan.setAvailable(false); // Set book as unavailable
-                    updateBookTable();
-                    JOptionPane.showMessageDialog(frame, "Book loaned successfully!");
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Book or Member not found!");
+                    JOptionPane.showMessageDialog(frame, "Please provide title, author, book ID, and member ID!");
                 }
             }
         });
@@ -162,42 +207,94 @@ public class BookManagementUI {
         returnBookButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                String title = bookTitleField.getText();
+                String title = JOptionPane.showInputDialog(frame, "Enter Book Title to Return:");
+                String author = JOptionPane.showInputDialog(frame, "Enter Book Author to Return:");
+                String idStr = JOptionPane.showInputDialog(frame, "Enter Book ID to Return:");
                 String memberIdStr = JOptionPane.showInputDialog(frame, "Enter Member ID:");
-                int memberId = Integer.parseInt(memberIdStr);
+                if (title != null && author != null && idStr != null && memberIdStr != null && !title.isEmpty() && !author.isEmpty() && !idStr.isEmpty() && !memberIdStr.isEmpty()) {
+                    try {
+                        int bookId = Integer.parseInt(idStr);
+                        int memberId = Integer.parseInt(memberIdStr);
 
-                List<IBook> books = Library.getInstance().getBooks();
-                IBook bookToReturn = null;
+                        if (bookId == 0) {
+                            List<IBook> books = Library.getInstance().getBooks();
+                            for (IBook book : books) {
+                                if (book.getTitle().equals(title) && book.getAuthor().equals(author) && !book.isAvailable()) {
+                                    book.setAvailable(true); // Set book as available
+                                    updateBookTable();
+                                    JOptionPane.showMessageDialog(frame, "Book returned successfully!");
+                                    return;
+                                }
+                            }
+                            JOptionPane.showMessageDialog(frame, "No matching unavailable book found!");
+                            return;
+                        }
 
-                for (IBook book : books) {
-                    if (book.getTitle().equals(title) && !book.isAvailable()) {
-                        bookToReturn = book;
-                        break;
+                        List<IBook> books = Library.getInstance().getBooks();
+                        IBook bookToReturn = null;
+
+                        for (IBook book : books) {
+                            if (book.getId() == bookId && book.getTitle().equals(title) && book.getAuthor().equals(author) && !book.isAvailable()) {
+                                bookToReturn = book;
+                                break;
+                            }
+                        }
+
+                        if (bookToReturn == null) {
+                            JOptionPane.showMessageDialog(frame, "No borrowed copy of this book found!");
+                            return;
+                        }
+
+                        List<IMember> members = Library.getInstance().getMembers();
+                        IMember memberToReturn = null;
+
+                        for (IMember member : members) {
+                            if (member.getId() == memberId) {
+                                memberToReturn = member;
+                                break;
+                            }
+                        }
+
+                        if (bookToReturn != null && memberToReturn != null) {
+                            librarian.returnBook(bookToReturn, memberToReturn);
+                            bookToReturn.setAvailable(true); // Set book as available
+                            updateBookTable();
+                            JOptionPane.showMessageDialog(frame, "Book returned successfully!");
+                        } else {
+                            JOptionPane.showMessageDialog(frame, "Book or Member not found!");
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(frame, "Invalid ID format!");
                     }
-                }
-
-                if (bookToReturn == null) {
-                    JOptionPane.showMessageDialog(frame, "No borrowed copy of this book found!");
-                    return;
-                }
-
-                List<IMember> members = Library.getInstance().getMembers();
-                IMember memberToReturn = null;
-
-                for (IMember member : members) {
-                    if (member.getId() == memberId) {
-                        memberToReturn = member;
-                        break;
-                    }
-                }
-
-                if (bookToReturn != null && memberToReturn != null) {
-                    librarian.returnBook(bookToReturn, memberToReturn);
-                    bookToReturn.setAvailable(true); // Set book as available
-                    updateBookTable();
-                    JOptionPane.showMessageDialog(frame, "Book returned successfully!");
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Book or Member not found!");
+                    JOptionPane.showMessageDialog(frame, "Please provide title, author, book ID, and member ID!");
+                }
+            }
+        });
+
+        makeAvailableButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String title = JOptionPane.showInputDialog(frame, "Enter Book Title to Make Available:");
+                String idStr = JOptionPane.showInputDialog(frame, "Enter Book ID to Make Available:");
+                if (title != null && idStr != null && !title.isEmpty() && !idStr.isEmpty()) {
+                    try {
+                        int bookId = Integer.parseInt(idStr);
+                        List<IBook> books = Library.getInstance().getBooks();
+                        for (IBook book : books) {
+                            if (book.getId() == bookId && book.getTitle().equals(title) && !book.isAvailable()) {
+                                book.setAvailable(true);
+                                updateBookTable();
+                                JOptionPane.showMessageDialog(frame, "Book made available successfully!");
+                                return;
+                            }
+                        }
+                        JOptionPane.showMessageDialog(frame, "No matching unavailable book found!");
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(frame, "Invalid ID format!");
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Please provide both title and ID!");
                 }
             }
         });
@@ -233,11 +330,16 @@ public class BookManagementUI {
         tableModel.setRowCount(0); // Clear existing data
         List<IBook> books = Library.getInstance().getBooks();
         for (IBook book : books) {
+            String availability = book.isAvailable() ? "Available" : "Unavailable";
+            if (!book.isAvailable() && !availability.equals("Unavailable")) {
+                availability = "Loaned";
+            }
             String[] rowData = {
+                    String.valueOf(book.getId()),
                     book.getTitle(),
                     book.getAuthor(),
                     String.valueOf(book.getPublicationYear()),
-                    book.isAvailable() ? "Available" : "Loaned"
+                    availability
             };
             tableModel.addRow(rowData);
         }

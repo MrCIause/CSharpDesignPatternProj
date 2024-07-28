@@ -1,6 +1,7 @@
 package Interfaces;
 
 public interface IBook {
+    int getId();
     String getTitle();
     String getAuthor();
     int getPublicationYear();
